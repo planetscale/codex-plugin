@@ -2,6 +2,14 @@
 
 Plugin for installing the [PlanetScale MCP server](https://planetscale.com/docs/connect/mcp), [PlanetScale Skills](https://github.com/planetscale/skills), and [Database Skills](https://db-skills.com/) into Codex.
 
+## Prerequisites
+
+- A plugin-capable Codex CLI or ChatGPT desktop app
+- Git with submodule support when cloning the repository locally
+- A PlanetScale account for authenticated MCP operations
+
+The skills can be installed without authenticating, but PlanetScale MCP requests require `codex mcp login PlanetScale`.
+
 ## Install from GitHub
 
 Add this repository as a marketplace, then install the plugin:
@@ -105,3 +113,16 @@ When either submodule has new commits, the workflow opens or updates a PR that c
 
 - The `database-skills` and/or `skills` submodule pointer updates
 - `.gitmodules` (if submodule metadata changed)
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for local setup, testing, and pull request requirements.
+
+Skill changes should be contributed to their upstream repositories:
+
+- [`planetscale/skills`](https://github.com/planetscale/skills)
+- [`planetscale/database-skills`](https://github.com/planetscale/database-skills)
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
