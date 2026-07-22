@@ -1,0 +1,43 @@
+{
+  "name": "planetscale",
+  "version": "1.0.0",
+  "description": "An authenticated hosted MCP server that accesses your PlanetScale organizations, databases, branches, schema, and Insights data.",
+  "author": {
+    "name": "PlanetScale",
+    "url": "https://planetscale.com"
+  },
+  "homepage": "https://planetscale.com/docs/connect/mcp",
+  "repository": "https://github.com/planetscale/codex-plugin",
+  "license": "MIT",
+  "keywords": [
+    "planetscale",
+    "database",
+    "mysql",
+    "postgres",
+    "vitess",
+    "mcp",
+    "skills"
+  ],
+  "skills": "./database-skills/skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "PlanetScale",
+    "shortDescription": "PlanetScale MCP server and skills",
+    "longDescription": "Connect Codex to PlanetScale with the official hosted MCP server for organizations, databases, branches, schema, and Insights, plus PlanetScale operating skills and Database Skills for MySQL, Postgres, Vitess, and Neki.",
+    "developerName": "PlanetScale",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://planetscale.com",
+    "privacyPolicyURL": "https://planetscale.com/legal/privacy",
+    "termsOfServiceURL": "https://planetscale.com/legal/agreement",
+    "defaultPrompt": [
+      "Run a PlanetScale best-practices assessment for my database.",
+      "List my PlanetScale organizations and databases, then inspect a branch schema.",
+      "Review this query plan and suggest indexes with PlanetScale Database Skills."
+    ],
+    "brandColor": "#000000"
+  }
+}

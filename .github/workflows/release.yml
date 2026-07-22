@@ -1,0 +1,41 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/checkout@v4
+        if: ${{ steps.release.outputs.release_created }}
+        with:
+          submodules: true
+
+      - name: Create archive
+        if: ${{ steps.release.outputs.release_created }}
+        run: |
+          tar -czvf planetscale-codex-plugin.tar.gz \
+            --dereference \
+            .codex-plugin/plugin.json \
+            .mcp.json \
+            .agents/plugins/marketplace.json \
+            database-skills/skills/ \
+            skills/
+
+      - name: Upload release asset
+        if: ${{ steps.release.outputs.release_created }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload ${{ steps.release.outputs.tag_name }} planetscale-codex-plugin.tar.gz

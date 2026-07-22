@@ -1,0 +1,98 @@
+name: Update Skills Submodules
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 9 * * 1"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-skills:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Capture current submodule commits
+        id: before
+        run: |
+          echo "database_skills_sha=$(git rev-parse HEAD:database-skills)" >> "$GITHUB_OUTPUT"
+          echo "skills_sha=$(git rev-parse HEAD:skills)" >> "$GITHUB_OUTPUT"
+
+      - name: Sync and update skill submodules
+        run: |
+          git submodule sync --recursive
+          git submodule update --init --remote database-skills skills
+
+      - name: Validate expected skills layout
+        run: |
+          test -d database-skills/skills
+          for skill in mysql neki postgres vitess; do
+            test -f "database-skills/skills/$skill/SKILL.md"
+          done
+
+          skill_count=0
+          for skill in skills/[0-9]*; do
+            test -f "$skill/SKILL.md"
+            skill_count=$((skill_count + 1))
+          done
+          test "$skill_count" -ge 1
+
+      - name: Capture updated submodule commits
+        id: after
+        run: |
+          echo "database_skills_sha=$(git -C database-skills rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "skills_sha=$(git -C skills rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Compute change metadata
+        id: meta
+        run: |
+          DB_BEFORE="${{ steps.before.outputs.database_skills_sha }}"
+          DB_AFTER="${{ steps.after.outputs.database_skills_sha }}"
+          SK_BEFORE="${{ steps.before.outputs.skills_sha }}"
+          SK_AFTER="${{ steps.after.outputs.skills_sha }}"
+
+          CHANGED="false"
+          if [ "$DB_BEFORE" != "$DB_AFTER" ] || [ "$SK_BEFORE" != "$SK_AFTER" ]; then
+            CHANGED="true"
+          fi
+
+          {
+            echo "changed=$CHANGED"
+            echo "database_skills_before_sha=$DB_BEFORE"
+            echo "database_skills_after_sha=$DB_AFTER"
+            echo "database_skills_compare_url=https://github.com/planetscale/database-skills/compare/$DB_BEFORE...$DB_AFTER"
+            echo "skills_before_sha=$SK_BEFORE"
+            echo "skills_after_sha=$SK_AFTER"
+            echo "skills_compare_url=https://github.com/planetscale/skills/compare/$SK_BEFORE...$SK_AFTER"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Open pull request with submodule updates
+        if: steps.meta.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/update-skills-submodules
+          delete-branch: true
+          title: "chore: update skills submodules"
+          commit-message: "chore: update skills submodules"
+          body: |
+            This automated PR updates the skill submodules to the latest `main` commits.
+
+            ### database-skills
+            - Previous commit: `${{ steps.meta.outputs.database_skills_before_sha }}`
+            - Updated commit: `${{ steps.meta.outputs.database_skills_after_sha }}`
+            - Upstream compare: ${{ steps.meta.outputs.database_skills_compare_url }}
+
+            ### skills
+            - Previous commit: `${{ steps.meta.outputs.skills_before_sha }}`
+            - Updated commit: `${{ steps.meta.outputs.skills_after_sha }}`
+            - Upstream compare: ${{ steps.meta.outputs.skills_compare_url }}
+          add-paths: |
+            .gitmodules
+            database-skills
+            skills
