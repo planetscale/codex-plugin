@@ -30,9 +30,9 @@ jobs:
             --dereference \
             .codex-plugin/plugin.json \
             LICENSE \
-            README.md \
             .mcp.json \
             .agents/plugins/marketplace.json \
+            database-skills/LICENSE \
             database-skills/skills/ \
             skills/
 
