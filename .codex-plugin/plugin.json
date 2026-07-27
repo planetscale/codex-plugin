@@ -8,7 +8,7 @@
   },
   "homepage": "https://planetscale.com/docs/connect/mcp",
   "repository": "https://github.com/planetscale/codex-plugin",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "keywords": [
     "planetscale",
     "database",
