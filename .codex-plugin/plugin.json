@@ -38,6 +38,9 @@
       "List my PlanetScale organizations and databases, then inspect a branch schema.",
       "Review this query plan and suggest indexes with PlanetScale Database Skills."
     ],
-    "brandColor": "#000000"
+    "brandColor": "#000000",
+    "composerIcon": "./assets/planetscale-mark-black.svg",
+    "logo": "./assets/planetscale-mark-black.svg",
+    "logoDark": "./assets/planetscale-mark-white.svg"
   }
 }
