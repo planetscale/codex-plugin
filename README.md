@@ -5,7 +5,6 @@ Plugin for installing the [PlanetScale MCP server](https://planetscale.com/docs/
 ## Prerequisites
 
 - A plugin-capable Codex CLI or ChatGPT desktop app
-- Git with submodule support when cloning the repository locally
 - A PlanetScale account for authenticated MCP operations
 
 ## Install from GitHub
@@ -30,41 +29,28 @@ codex mcp login PlanetScale
 
 ## Skills Source and Sync
 
-This plugin pulls in skills from two upstream repositories via Git submodules:
+This plugin vendors skills from two upstream repositories:
 
-| Upstream | Submodule path | What it provides |
+| Upstream | Vendored path | What it provides |
 | --- | --- | --- |
-| [`planetscale/skills`](https://github.com/planetscale/skills) | `skills` | PlanetScale operating/assessment skills (safe orchestrator, inventory, Insights, Traffic Control, schema recommendations, and more) |
-| [`planetscale/database-skills`](https://github.com/planetscale/database-skills) | `database-skills` | Engine skills for MySQL, Postgres, Vitess, and Neki |
+| [`planetscale/skills`](https://github.com/planetscale/skills) | `skills/` | PlanetScale operating/assessment skills (safe orchestrator, inventory, Insights, Traffic Control, schema recommendations, and more) |
+| [`planetscale/database-skills`](https://github.com/planetscale/database-skills) | `skills/` | Engine skills for MySQL, Postgres, Vitess, and Neki |
 
-Both track `main`. Codex loads `./skills/` by default and also loads `./database-skills/skills/` via the plugin manifest.
+Both track `main`. The sync script copies each upstream skill directory into `skills/`, using the frontmatter `name` as the directory name. It skips upstream directories without a `SKILL.md` and records source commit SHAs in `.codex-plugin/skill-sources.json`.
 
-### Local bootstrap
+### Local sync and testing
 
-Clone with submodules:
-
-```bash
-git clone --recurse-submodules https://github.com/planetscale/codex-plugin.git
-```
-
-If you already cloned without submodules:
+Clone the repository normally:
 
 ```bash
-git submodule update --init --recursive
+git clone https://github.com/planetscale/codex-plugin.git
 ```
 
-### Manual one-off update
-
-To pull the latest upstream skills into this repository:
+Refresh vendored skills from upstream:
 
 ```bash
-git submodule sync --recursive
-git submodule update --init --remote database-skills skills
+python3 scripts/sync-skills.py
 ```
-
-Commit the resulting submodule pointer changes in this repository.
-
-### Local testing
 
 Add a personal or repo marketplace that points at this working copy, then install the plugin and restart the ChatGPT desktop app or Codex CLI.
 
@@ -107,10 +93,7 @@ codex plugin marketplace add /absolute/path/to/codex-plugin
 
 GitHub Actions runs `.github/workflows/update-skills.yml` weekly and also supports manual runs (`workflow_dispatch`).
 
-When either submodule has new commits, the workflow opens or updates a PR that contains only:
-
-- The `database-skills` and/or `skills` submodule pointer updates
-- `.gitmodules` (if submodule metadata changed)
+It runs `scripts/sync-skills.py`, validates the vendored layout, and opens a PR when the vendored skills, third-party licenses, or provenance file change. The PR body includes compare links to the upstream commits.
 
 ## Contributing
 

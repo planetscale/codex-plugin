@@ -20,21 +20,19 @@ jobs:
 
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         if: ${{ steps.release.outputs.release_created }}
-        with:
-          submodules: true
 
       - name: Create archive
         if: ${{ steps.release.outputs.release_created }}
         run: |
           tar -czvf planetscale-codex-plugin.tar.gz \
             --dereference \
-            .codex-plugin/plugin.json \
+            .codex-plugin/ \
             LICENSE \
             .mcp.json \
             .agents/plugins/marketplace.json \
-            database-skills/LICENSE \
-            database-skills/skills/ \
-            skills/
+            assets/ \
+            skills/ \
+            third_party/
 
       - name: Upload release asset
         if: ${{ steps.release.outputs.release_created }}

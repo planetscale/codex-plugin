@@ -1,6 +1,6 @@
 {
   "name": "planetscale",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "An authenticated hosted MCP server that accesses your PlanetScale organizations, databases, branches, schema, and Insights data.",
   "author": {
     "name": "PlanetScale",
@@ -18,11 +18,11 @@
     "mcp",
     "skills"
   ],
-  "skills": "./database-skills/skills/",
+  "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "PlanetScale",
-    "shortDescription": "PlanetScale MCP server and skills",
+    "shortDescription": "PlanetScale MCP and skills",
     "longDescription": "Connect Codex to PlanetScale with the official hosted MCP server for organizations, databases, branches, schema, and Insights, plus PlanetScale operating skills and Database Skills for MySQL, Postgres, Vitess, and Neki.",
     "developerName": "PlanetScale",
     "category": "Developer Tools",
@@ -33,6 +33,9 @@
     "websiteURL": "https://planetscale.com",
     "privacyPolicyURL": "https://planetscale.com/legal/privacy",
     "termsOfServiceURL": "https://planetscale.com/legal/agreement",
+    "logo": "./assets/logo.png",
+    "logoDark": "./assets/logo-dark.png",
+    "composerIcon": "./assets/composer-icon.png",
     "defaultPrompt": [
       "Run a PlanetScale best-practices assessment for my database.",
       "List my PlanetScale organizations and databases, then inspect a branch schema.",

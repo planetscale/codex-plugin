@@ -1,4 +1,4 @@
-name: Update Skills Submodules
+name: Update Vendored Skills
 
 on:
   workflow_dispatch:
@@ -15,84 +15,67 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          submodules: recursive
 
-      - name: Capture current submodule commits
-        id: before
+      - name: Sync vendored skills
+        id: sync
+        run: python3 scripts/sync-skills.py
+
+      - name: Validate skills layout
         run: |
-          echo "database_skills_sha=$(git rev-parse HEAD:database-skills)" >> "$GITHUB_OUTPUT"
-          echo "skills_sha=$(git rev-parse HEAD:skills)" >> "$GITHUB_OUTPUT"
+          python3 - <<'PY'
+          import pathlib
 
-      - name: Sync and update skill submodules
+          root = pathlib.Path("skills")
+          skill_dirs = sorted(path for path in root.iterdir() if path.is_dir())
+          assert skill_dirs, "no skill directories found"
+          for skill_dir in skill_dirs:
+              skill_md = skill_dir / "SKILL.md"
+              assert skill_md.is_file(), f"missing {skill_md}"
+              lines = skill_md.read_text(encoding="utf-8").splitlines()
+              assert lines and lines[0].strip() == "---", f"missing frontmatter in {skill_md}"
+              end = lines.index("---", 1)
+              names = [
+                  line.partition(":")[2].strip().strip("\"'")
+                  for line in lines[1:end]
+                  if line.startswith("name:")
+              ]
+              assert names == [skill_dir.name], f"name mismatch in {skill_md}"
+
+          for name in ("mysql", "postgres", "vitess", "neki"):
+              assert (root / name / "SKILL.md").is_file(), f"missing database skill {name}"
+          assert not (root / "script").exists(), "helper script directory was vendored"
+          PY
+
+      - name: Detect vendored changes
+        id: changes
         run: |
-          git submodule sync --recursive
-          git submodule update --init --remote database-skills skills
-
-      - name: Validate expected skills layout
-        run: |
-          test -d database-skills/skills
-          for skill in mysql neki postgres vitess; do
-            test -f "database-skills/skills/$skill/SKILL.md"
-          done
-
-          skill_count=0
-          for skill in skills/[0-9]*; do
-            test -f "$skill/SKILL.md"
-            skill_count=$((skill_count + 1))
-          done
-          test "$skill_count" -ge 1
-
-      - name: Capture updated submodule commits
-        id: after
-        run: |
-          echo "database_skills_sha=$(git -C database-skills rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          echo "skills_sha=$(git -C skills rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-
-      - name: Compute change metadata
-        id: meta
-        run: |
-          DB_BEFORE="${{ steps.before.outputs.database_skills_sha }}"
-          DB_AFTER="${{ steps.after.outputs.database_skills_sha }}"
-          SK_BEFORE="${{ steps.before.outputs.skills_sha }}"
-          SK_AFTER="${{ steps.after.outputs.skills_sha }}"
-
-          CHANGED="false"
-          if [ "$DB_BEFORE" != "$DB_AFTER" ] || [ "$SK_BEFORE" != "$SK_AFTER" ]; then
-            CHANGED="true"
+          if [ -n "$(git status --porcelain -- skills third_party .codex-plugin/skill-sources.json)" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
 
-          {
-            echo "changed=$CHANGED"
-            echo "database_skills_before_sha=$DB_BEFORE"
-            echo "database_skills_after_sha=$DB_AFTER"
-            echo "database_skills_compare_url=https://github.com/planetscale/database-skills/compare/$DB_BEFORE...$DB_AFTER"
-            echo "skills_before_sha=$SK_BEFORE"
-            echo "skills_after_sha=$SK_AFTER"
-            echo "skills_compare_url=https://github.com/planetscale/skills/compare/$SK_BEFORE...$SK_AFTER"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Open pull request with submodule updates
-        if: steps.meta.outputs.changed == 'true'
+      - name: Open pull request with vendored skill updates
+        if: steps.changes.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676 # v7
         with:
-          branch: chore/update-skills-submodules
+          branch: chore/update-vendored-skills
           delete-branch: true
-          title: "chore: update skills submodules"
-          commit-message: "chore: update skills submodules"
+          title: "chore: update vendored skills"
+          commit-message: "chore: update vendored skills"
           body: |
-            This automated PR updates the skill submodules to the latest `main` commits.
+            This automated PR updates the vendored skills to the latest `main` commits.
 
             ### database-skills
-            - Previous commit: `${{ steps.meta.outputs.database_skills_before_sha }}`
-            - Updated commit: `${{ steps.meta.outputs.database_skills_after_sha }}`
-            - Upstream compare: ${{ steps.meta.outputs.database_skills_compare_url }}
+            - Previous commit: `${{ steps.sync.outputs.database_skills_before_sha }}`
+            - Updated commit: `${{ steps.sync.outputs.database_skills_after_sha }}`
+            - Upstream compare: ${{ steps.sync.outputs.database_skills_compare_url }}
 
             ### skills
-            - Previous commit: `${{ steps.meta.outputs.skills_before_sha }}`
-            - Updated commit: `${{ steps.meta.outputs.skills_after_sha }}`
-            - Upstream compare: ${{ steps.meta.outputs.skills_compare_url }}
+            - Previous commit: `${{ steps.sync.outputs.skills_before_sha }}`
+            - Updated commit: `${{ steps.sync.outputs.skills_after_sha }}`
+            - Upstream compare: ${{ steps.sync.outputs.skills_compare_url }}
           add-paths: |
-            .gitmodules
-            database-skills
             skills
+            third_party
+            .codex-plugin/skill-sources.json
