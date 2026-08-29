@@ -33,12 +33,14 @@ This plugin vendors skills from two upstream repositories:
 
 | Upstream | Vendored path | What it provides |
 | --- | --- | --- |
-| [`planetscale/skills`](https://github.com/planetscale/skills) | `skills/planetscale/` | PlanetScale operating/assessment skills |
-| [`planetscale/database-skills`](https://github.com/planetscale/database-skills) | `skills/database/` | Engine skills for MySQL, Postgres, Vitess, and Neki |
+| [`planetscale/skills`](https://github.com/planetscale/skills) | `skills/` | PlanetScale operating/assessment skills |
+| [`planetscale/database-skills`](https://github.com/planetscale/database-skills) | `skills/` | Engine skills for MySQL, Postgres, Vitess, and Neki |
 
-Both track `main`. The sync script copies each upstream skill directory into a namespace under `skills/`, using the frontmatter `name` as the directory name after stripping the `planetscale-` prefix from operating skills. It skips upstream directories without a `SKILL.md` and records source commit SHAs, namespaces, and vendored names in `.codex-plugin/skill-sources.json`.
+Both track `main`. The sync script copies each upstream skill directory directly under `skills/`, using the frontmatter `name` as the directory name after stripping the `planetscale-` prefix from operating skills and adding the `database-` prefix to engine skills. It skips upstream directories without a `SKILL.md` and records source commit SHAs, namespaces, and vendored names in `.codex-plugin/skill-sources.json`.
 
 Each namespace has an index skill at `skills/database/SKILL.md` or `skills/planetscale/SKILL.md`. The index tables link to every child skill and are generated from the child frontmatter descriptions. Their source prose and generated-region markers live in `skill-index/`; edit those templates rather than the rendered indexes.
+
+The 19 source skills are direct siblings under `skills/` so both legacy and direct-child skill discovery can load them. Operating skills use names such as `safe-orchestrator`, while engine skills use the `database-` prefix, such as `database-mysql`.
 
 ### Local sync and testing
 
@@ -88,8 +90,8 @@ codex plugin marketplace add /absolute/path/to/codex-plugin
 ```
 
 1. Confirm the `PlanetScale` MCP server is listed (authentication required on first use).
-2. Confirm PlanetScale operating skills (for example `00-safe-orchestrator`) are available.
-3. Confirm the MySQL, Postgres, Vitess, and Neki database skills are available.
+2. Confirm PlanetScale operating skills (for example `safe-orchestrator`) are available.
+3. Confirm the `database-mysql`, `database-postgres`, `database-vitess`, and `database-neki` skills are available.
 
 ### Automated weekly updates
 

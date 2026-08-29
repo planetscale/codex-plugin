@@ -29,10 +29,10 @@
       "sha": "73b20b7eb64716d8c7100c054f0677c0c6e77e30",
       "namespace": "database",
       "skills": [
-        "mysql",
-        "neki",
-        "postgres",
-        "vitess"
+        "database-mysql",
+        "database-neki",
+        "database-postgres",
+        "database-vitess"
       ]
     }
   ]

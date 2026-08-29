@@ -32,8 +32,8 @@ jobs:
               r"(?P<target>[a-z0-9]+(?:-[a-z0-9]+)*)"
               r"(?P<suffix>(?:/[A-Za-z0-9._-]+)*/SKILL\.md)"
           )
-          namespaces = sorted(path for path in root.iterdir() if path.is_dir())
-          assert len(namespaces) == 2, namespaces
+          skill_dirs = sorted(path for path in root.iterdir() if path.is_dir())
+          assert len(skill_dirs) == 21, skill_dirs
 
           def frontmatter_name(skill_md):
               lines = skill_md.read_text(encoding="utf-8").splitlines()
@@ -47,11 +47,14 @@ jobs:
               assert len(names) == 1, f"missing or duplicate name in {skill_md}"
               return names[0]
 
-          child_count = 0
-          for namespace_dir in namespaces:
-              index = namespace_dir / "SKILL.md"
-              assert index.is_file(), f"missing {index}"
-              assert frontmatter_name(index) == namespace_dir.name
+          namespaces = {"database", "planetscale"}
+          for skill_dir in skill_dirs:
+              skill_md = skill_dir / "SKILL.md"
+              assert skill_md.is_file(), f"missing {skill_md}"
+              assert frontmatter_name(skill_md) == skill_dir.name
+
+          for namespace in namespaces:
+              index = root / namespace / "SKILL.md"
               text = index.read_text(encoding="utf-8")
               begin = "<!-- BEGIN GENERATED INDEX -->"
               end = "<!-- END GENERATED INDEX -->"
@@ -59,15 +62,10 @@ jobs:
               finish = text.index(end, start)
               assert text[start:finish].strip(), f"empty generated index in {index}"
 
-              for skill_dir in sorted(path for path in namespace_dir.iterdir() if path.is_dir()):
-                  child_count += 1
-                  skill_md = skill_dir / "SKILL.md"
-                  assert skill_md.is_file(), f"missing {skill_md}"
-                  assert frontmatter_name(skill_md) == skill_dir.name
-
+          child_count = len([path for path in skill_dirs if path.name not in namespaces])
           assert child_count == 19, child_count
-          for name in ("mysql", "postgres", "vitess", "neki"):
-              assert (root / "database" / name / "SKILL.md").is_file(), f"missing database skill {name}"
+          for name in ("database-mysql", "database-postgres", "database-vitess", "database-neki"):
+              assert (root / name / "SKILL.md").is_file(), f"missing database skill {name}"
           assert not any(path.name == "script" for path in root.rglob("*")), "helper script directory was vendored"
 
           reference_count = 0

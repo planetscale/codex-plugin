@@ -11,10 +11,10 @@ Pick the one engine skill that matches the database in front of you and follow i
 
 | Database | Skill |
 | --- | --- |
-| MySQL-compatible, unsharded | `mysql` |
-| PlanetScale Postgres | `postgres` |
-| Vitess (sharded MySQL, keyspaces, VSchema) | `vitess` |
-| Neki (sharded Postgres) | `neki` |
+| MySQL-compatible, unsharded | `database-mysql` |
+| PlanetScale Postgres | `database-postgres` |
+| Vitess (sharded MySQL, keyspaces, VSchema) | `database-vitess` |
+| Neki (sharded Postgres) | `database-neki` |
 
 If you do not know which engine backs the database, determine it with the PlanetScale MCP server before choosing — do not infer it from the connection string, ORM, or repository conventions.
 
@@ -23,10 +23,10 @@ If you do not know which engine backs the database, determine it with the Planet
 <!-- BEGIN GENERATED INDEX -->
 | Skill | Path | Description |
 | --- | --- | --- |
-| `mysql` | `skills/database/mysql/SKILL.md` | Plan and review MySQL/InnoDB schema, indexing, query tuning, transactions, and operations. |
-| `neki` | `skills/database/neki/SKILL.md` | Overview and information about Neki, the sharded Postgres product by PlanetScale. |
-| `postgres` | `skills/database/postgres/SKILL.md` | PostgreSQL best practices, query optimization, connection troubleshooting, and performance improvement. |
-| `vitess` | `skills/database/vitess/SKILL.md` | Vitess best practices, query optimization, and connection troubleshooting for PlanetScale Vitess databases. |
+| `database-mysql` | `skills/database-mysql/SKILL.md` | Plan and review MySQL/InnoDB schema, indexing, query tuning, transactions, and operations. |
+| `database-neki` | `skills/database-neki/SKILL.md` | Overview and information about Neki, the sharded Postgres product by PlanetScale. |
+| `database-postgres` | `skills/database-postgres/SKILL.md` | PostgreSQL best practices, query optimization, connection troubleshooting, and performance improvement. |
+| `database-vitess` | `skills/database-vitess/SKILL.md` | Vitess best practices, query optimization, and connection troubleshooting for PlanetScale Vitess databases. |
 <!-- END GENERATED INDEX -->
 
 ## Related

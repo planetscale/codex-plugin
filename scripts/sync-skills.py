@@ -20,6 +20,7 @@ SOURCES = (
         "skills",
         "planetscale",
         "planetscale-",
+        "",
     ),
     (
         "database-skills",
@@ -27,6 +28,7 @@ SOURCES = (
         "database_skills",
         "database",
         "",
+        "database-",
     ),
 )
 VALID_NAME = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -104,7 +106,11 @@ def validate_name(name: str, path: Path) -> None:
 
 
 def discover_skills(
-    source: Path, source_name: str, namespace: str, prefix: str
+    source: Path,
+    source_name: str,
+    namespace: str,
+    strip_prefix: str,
+    name_prefix: str,
 ) -> tuple[list[tuple[str, Path, str, str]], dict[str, str]]:
     discovered: list[tuple[str, Path, str, str]] = []
     directory_names: dict[str, str] = {}
@@ -112,7 +118,8 @@ def discover_skills(
         fields = frontmatter(skill_md)
         original_name = fields.get("name", "")
         validate_name(original_name, skill_md)
-        name = original_name.removeprefix(prefix)
+        name = original_name.removeprefix(strip_prefix)
+        name = name_prefix + name
         validate_name(name, skill_md)
         if name == namespace:
             raise ValueError(
@@ -184,7 +191,7 @@ def rewrite_references(
             replacement = f"{match.group('prefix')}{target_name}{suffix}"
         else:
             target_path = (
-                root / "skills" / target_namespace / target_name / suffix.lstrip("/")
+                root / "skills" / target_name / suffix.lstrip("/")
             )
             replacement = os.path.relpath(target_path, path.parent)
         if replacement != match.group(0):
@@ -193,7 +200,7 @@ def rewrite_references(
 
     text = REFERENCE.sub(replace_path, text)
     names = directory_names.get(namespace, {})
-    if names:
+    if names and namespace == "planetscale":
         pattern = re.compile(
             r"(?<![A-Za-z0-9_-])(?:"
             + "|".join(re.escape(name) for name in sorted(names, key=len, reverse=True))
@@ -254,7 +261,7 @@ def render_index(root: Path, namespace: str, children: list[tuple[str, str]]) ->
     for name, description in sorted(children):
         escaped_description = first_sentence(description).replace("|", "\\|")
         rows.append(
-            f"| `{name}` | `skills/{namespace}/{name}/SKILL.md` | "
+            f"| `{name}` | `skills/{name}/SKILL.md` | "
             f"{escaped_description} |"
         )
     generated = "\n".join(rows)
@@ -266,6 +273,7 @@ def render_index(root: Path, namespace: str, children: list[tuple[str, str]]) ->
         + text[end_index:]
     )
     destination = root / "skills" / namespace / "SKILL.md"
+    destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(rendered, encoding="utf-8")
 
 
@@ -312,9 +320,18 @@ def main() -> None:
             ]
         ] = []
         all_names: dict[str, dict[str, str]] = {}
+        flat_names: dict[str, str] = {}
         directory_names: dict[str, dict[str, str]] = {}
+        index_names = {source[3] for source in SOURCES}
 
-        for repo_name, url, output_key, namespace, prefix in SOURCES:
+        for (
+            repo_name,
+            url,
+            output_key,
+            namespace,
+            strip_prefix,
+            name_prefix,
+        ) in SOURCES:
             source = local_sources[repo_name]
             if source is None:
                 source = clone_source(url, temp_root / repo_name)
@@ -322,17 +339,22 @@ def main() -> None:
                 raise ValueError(f"source does not exist: {source}")
 
             skills, source_directory_names = discover_skills(
-                source, repo_name, namespace, prefix
+                source, repo_name, namespace, strip_prefix, name_prefix
             )
             namespace_names = all_names.setdefault(namespace, {})
             namespace_directory_names = directory_names.setdefault(namespace, {})
             for name, _, _, directory_name in skills:
-                if name in namespace_names:
+                if name in flat_names:
                     raise ValueError(
-                        f"skill name collision in {namespace}: {name} in "
-                        f"{namespace_names[name]} and {repo_name}"
+                        f"skill name collision: {name} in "
+                        f"{flat_names[name]} and {repo_name}"
+                    )
+                if name in index_names:
+                    raise ValueError(
+                        f"skill name collides with index namespace: {name}"
                     )
                 namespace_names[name] = repo_name
+                flat_names[name] = repo_name
                 if directory_name in namespace_directory_names:
                     raise ValueError(
                         f"skill directory collision in {namespace}: {directory_name}"
@@ -371,10 +393,8 @@ def main() -> None:
             skills,
             _,
         ) in resolved:
-            namespace_destination = destination / namespace
-            namespace_destination.mkdir(parents=True, exist_ok=True)
             for name, skill_dir, description, _ in skills:
-                child_destination = namespace_destination / name
+                child_destination = destination / name
                 shutil.copytree(skill_dir, child_destination)
                 rewrite_name(child_destination / "SKILL.md", name)
                 index_children.setdefault(namespace, []).append((name, description))
@@ -404,8 +424,15 @@ def main() -> None:
             )
 
         rewritten_references = 0
-        for namespace in directory_names:
-            for path in sorted((destination / namespace).rglob("*.md")):
+        skill_namespaces = {
+            name: namespace
+            for namespace, names in directory_names.items()
+            for name in names.values()
+        }
+        for path in sorted(destination.rglob("*.md")):
+            name = path.relative_to(destination).parts[0]
+            namespace = skill_namespaces.get(name)
+            if namespace is not None:
                 rewritten_references += rewrite_references(
                     path, root, namespace, directory_names
                 )

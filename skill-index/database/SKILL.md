@@ -11,10 +11,10 @@ Pick the one engine skill that matches the database in front of you and follow i
 
 | Database | Skill |
 | --- | --- |
-| MySQL-compatible, unsharded | `mysql` |
-| PlanetScale Postgres | `postgres` |
-| Vitess (sharded MySQL, keyspaces, VSchema) | `vitess` |
-| Neki (sharded Postgres) | `neki` |
+| MySQL-compatible, unsharded | `database-mysql` |
+| PlanetScale Postgres | `database-postgres` |
+| Vitess (sharded MySQL, keyspaces, VSchema) | `database-vitess` |
+| Neki (sharded Postgres) | `database-neki` |
 
 If you do not know which engine backs the database, determine it with the PlanetScale MCP server before choosing — do not infer it from the connection string, ORM, or repository conventions.
 
