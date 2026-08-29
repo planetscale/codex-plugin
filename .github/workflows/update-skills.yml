@@ -24,8 +24,14 @@ jobs:
         run: |
           python3 - <<'PY'
           import pathlib
+          import re
 
           root = pathlib.Path("skills")
+          reference = re.compile(
+              r"(?P<prefix>(?:\.\./)+)"
+              r"(?P<target>[a-z0-9]+(?:-[a-z0-9]+)*)"
+              r"(?P<suffix>(?:/[A-Za-z0-9._-]+)*/SKILL\.md)"
+          )
           namespaces = sorted(path for path in root.iterdir() if path.is_dir())
           assert len(namespaces) == 2, namespaces
 
@@ -63,6 +69,22 @@ jobs:
           for name in ("mysql", "postgres", "vitess", "neki"):
               assert (root / "database" / name / "SKILL.md").is_file(), f"missing database skill {name}"
           assert not any(path.name == "script" for path in root.rglob("*")), "helper script directory was vendored"
+
+          reference_count = 0
+          root_resolved = root.resolve()
+          for markdown in root.rglob("*.md"):
+              text = markdown.read_text(encoding="utf-8")
+              for match in reference.finditer(text):
+                  reference_count += 1
+                  target = (markdown.parent / match.group(0)).resolve()
+                  assert target.is_relative_to(root_resolved), (
+                      f"reference escapes skills root: {markdown}: {match.group(0)}"
+                  )
+                  assert target.is_file(), (
+                      f"dangling skill reference: {markdown}: "
+                      f"{match.group(0)} -> {target}"
+                  )
+          print(f"vendored skill references passed: {reference_count}")
           PY
 
       - name: Detect vendored changes

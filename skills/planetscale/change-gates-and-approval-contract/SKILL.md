@@ -107,7 +107,7 @@ Invalid approvals:
 ## Autonomous execution exception
 
 There is exactly one alternative to per-change approval: the risk-acknowledged
-autonomous mode defined in `../13-autonomous-execution-mode/SKILL.md`. When the
+autonomous mode defined in `../autonomous-execution-mode/SKILL.md`. When the
 operator explicitly acknowledges the risk, names a scope, and states whether
 production is included, that acknowledgment substitutes for per-change approval
 of Class B/C (and Class D when production is included) actions **within the

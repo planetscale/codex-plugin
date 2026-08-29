@@ -89,7 +89,7 @@ Agent output may include, without approval:
 Agent output must not cross the review gate on its own: no production
 deploys, PR merges, Traffic Control enforcement, credential rotation, or
 network changes — those require human action or a standing authorization
-per `../13-autonomous-execution-mode/SKILL.md`.
+per `../autonomous-execution-mode/SKILL.md`.
 
 ## Webhook receiver requirements
 
@@ -130,7 +130,7 @@ For Vitess:
    unit; opening them requires no approval.
 6. Deploy on human approval, or autonomously under a standing
    authorization that allowlists this deploy class
-   (`../13-autonomous-execution-mode/SKILL.md`).
+   (`../autonomous-execution-mode/SKILL.md`).
 
 For Postgres:
 

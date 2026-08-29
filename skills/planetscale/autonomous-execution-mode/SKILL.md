@@ -122,9 +122,9 @@ Maintain an append-only run log for the whole session: timestamp, step ID, comma
 
 ## Interaction with other skills
 
-- `../11-change-gates-and-approval-contract/SKILL.md` — the class definitions and pre/post-execution checklists still apply verbatim; a valid risk acknowledgment substitutes for per-change approval within scope. Class E rules are unchanged.
-- `../00-safe-orchestrator/SKILL.md` — when a valid acknowledgment accompanies the assessment request ("run the audit and fix what you find, I accept the risk"), run the full assessment first, present the report and execution plan, then proceed directly into execution under this skill without stopping for approval.
-- `../07-schema-recommendations-agent-loop/SKILL.md` — in autonomous mode the loop may carry recommendations all the way through branch, deploy request, and deploy, using gated deployments where cutover timing matters.
+- `../change-gates-and-approval-contract/SKILL.md` — the class definitions and pre/post-execution checklists still apply verbatim; a valid risk acknowledgment substitutes for per-change approval within scope. Class E rules are unchanged.
+- `../safe-orchestrator/SKILL.md` — when a valid acknowledgment accompanies the assessment request ("run the audit and fix what you find, I accept the risk"), run the full assessment first, present the report and execution plan, then proceed directly into execution under this skill without stopping for approval.
+- `../schema-recommendations-agent-loop/SKILL.md` — in autonomous mode the loop may carry recommendations all the way through branch, deploy request, and deploy, using gated deployments where cutover timing matters.
 
 ## Required refusal behavior
 

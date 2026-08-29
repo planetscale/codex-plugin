@@ -14,7 +14,7 @@ description: >-
 Teach agents how to invoke `pscale` non-interactively. This skill covers **CLI
 conventions only**. Operational workflows (inventory, safety review, schema
 recommendations) use the other skills in this repo — start with
-`../00-safe-orchestrator/SKILL.md` for a full assessment.
+`../safe-orchestrator/SKILL.md` for a full assessment.
 
 ## Two AGENTS.md files (do not confuse them)
 
@@ -24,7 +24,7 @@ recommendations) use the other skills in this repo — start with
 | **Project agent guide** | Your application repository's `AGENTS.md` | Which org, database, branch, engine, prod branch, MCP scope, approval rules |
 
 Do not edit project `AGENTS.md` without operator approval (see
-`../09-mcp-agent-operating-model/SKILL.md`).
+`../mcp-agent-operating-model/SKILL.md`).
 
 ## Bootstrap (always start here)
 
@@ -79,7 +79,7 @@ git clone https://github.com/planetscale/skills.git && cd skills && script/setup
 # or: npx skills add planetscale/skills -g -y
 ```
 
-Then run sub-skills or `../00-safe-orchestrator/SKILL.md` for database operations
+Then run sub-skills or `../safe-orchestrator/SKILL.md` for database operations
 beyond basic CLI invocation.
 
 ## Current conventions source of truth

@@ -31,6 +31,11 @@ SOURCES = (
 )
 VALID_NAME = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 INDEX_MARKERS = ("<!-- BEGIN GENERATED INDEX -->", "<!-- END GENERATED INDEX -->")
+REFERENCE = re.compile(
+    r"(?P<prefix>(?:\.\./)+)"
+    r"(?P<target>[a-z0-9]+(?:-[a-z0-9]+)*)"
+    r"(?P<suffix>(?:/[A-Za-z0-9._-]+)*/SKILL\.md)"
+)
 
 
 def git(*args: str, cwd: Path | None = None) -> str:
@@ -100,8 +105,9 @@ def validate_name(name: str, path: Path) -> None:
 
 def discover_skills(
     source: Path, source_name: str, namespace: str, prefix: str
-) -> list[tuple[str, Path, str]]:
-    discovered: list[tuple[str, Path, str]] = []
+) -> tuple[list[tuple[str, Path, str, str]], dict[str, str]]:
+    discovered: list[tuple[str, Path, str, str]] = []
+    directory_names: dict[str, str] = {}
     for skill_md in sorted(source.rglob("SKILL.md")):
         fields = frontmatter(skill_md)
         original_name = fields.get("name", "")
@@ -112,11 +118,19 @@ def discover_skills(
             raise ValueError(
                 f"{skill_md} child name collides with namespace: {namespace}"
             )
-        discovered.append((name, skill_md.parent, fields.get("description", "")))
+        directory_name = skill_md.parent.name
+        if directory_name in directory_names:
+            raise ValueError(
+                f"skill directory collision in {namespace}: {directory_name}"
+            )
+        directory_names[directory_name] = name
+        discovered.append(
+            (name, skill_md.parent, fields.get("description", ""), directory_name)
+        )
 
     if not discovered:
         raise ValueError(f"{source_name} contains no SKILL.md files")
-    return discovered
+    return discovered, directory_names
 
 
 def previous_sources(path: Path) -> dict[str, dict[str, str]]:
@@ -140,6 +154,78 @@ def rewrite_name(path: Path, name: str) -> None:
             path.write_text("".join(lines), encoding="utf-8")
             return
     raise ValueError(f"{path} is missing frontmatter name")
+
+
+def rewrite_references(
+    path: Path,
+    root: Path,
+    namespace: str,
+    directory_names: dict[str, dict[str, str]],
+) -> int:
+    text = path.read_text(encoding="utf-8")
+    rewritten = 0
+
+    def replace_path(match: re.Match[str]) -> str:
+        nonlocal rewritten
+        target = match.group("target")
+        suffix = match.group("suffix")
+        target_name = directory_names.get(namespace, {}).get(target)
+        target_namespace = namespace
+        if target_name is None:
+            for candidate_namespace, names in directory_names.items():
+                if target in names:
+                    target_name = names[target]
+                    target_namespace = candidate_namespace
+                    break
+        if target_name is None:
+            return match.group(0)
+
+        if target_namespace == namespace:
+            replacement = f"{match.group('prefix')}{target_name}{suffix}"
+        else:
+            target_path = (
+                root / "skills" / target_namespace / target_name / suffix.lstrip("/")
+            )
+            replacement = os.path.relpath(target_path, path.parent)
+        if replacement != match.group(0):
+            rewritten += 1
+        return replacement
+
+    text = REFERENCE.sub(replace_path, text)
+    names = directory_names.get(namespace, {})
+    if names:
+        pattern = re.compile(
+            r"(?<![A-Za-z0-9_-])(?:"
+            + "|".join(re.escape(name) for name in sorted(names, key=len, reverse=True))
+            + r")(?![A-Za-z0-9_-])"
+        )
+
+        def replace_bare(match: re.Match[str]) -> str:
+            nonlocal rewritten
+            replacement = names[match.group(0)]
+            if replacement != match.group(0):
+                rewritten += 1
+            return replacement
+
+        text = pattern.sub(replace_bare, text)
+
+    if rewritten:
+        path.write_text(text, encoding="utf-8")
+    return rewritten
+
+
+def validate_references(root: Path) -> tuple[int, list[tuple[Path, str, Path]]]:
+    reference_count = 0
+    dangling: list[tuple[Path, str, Path]] = []
+    for path in sorted(root.rglob("*.md")):
+        text = path.read_text(encoding="utf-8")
+        for match in REFERENCE.finditer(text):
+            link = match.group(0)
+            target = (path.parent / link).resolve()
+            reference_count += 1
+            if not target.is_file():
+                dangling.append((path, link, target))
+    return reference_count, dangling
 
 
 def first_sentence(description: str) -> str:
@@ -215,9 +301,18 @@ def main() -> None:
     with tempfile.TemporaryDirectory(prefix="planet-scale-skills-") as temp_dir:
         temp_root = Path(temp_dir)
         resolved: list[
-            tuple[str, str, str, str, Path, list[tuple[str, Path, str]]]
+            tuple[
+                str,
+                str,
+                str,
+                str,
+                Path,
+                list[tuple[str, Path, str, str]],
+                dict[str, str],
+            ]
         ] = []
         all_names: dict[str, dict[str, str]] = {}
+        directory_names: dict[str, dict[str, str]] = {}
 
         for repo_name, url, output_key, namespace, prefix in SOURCES:
             source = local_sources[repo_name]
@@ -226,16 +321,38 @@ def main() -> None:
             if not source.is_dir():
                 raise ValueError(f"source does not exist: {source}")
 
-            skills = discover_skills(source, repo_name, namespace, prefix)
+            skills, source_directory_names = discover_skills(
+                source, repo_name, namespace, prefix
+            )
             namespace_names = all_names.setdefault(namespace, {})
-            for name, _, _ in skills:
+            namespace_directory_names = directory_names.setdefault(namespace, {})
+            for name, _, _, directory_name in skills:
                 if name in namespace_names:
                     raise ValueError(
                         f"skill name collision in {namespace}: {name} in "
                         f"{namespace_names[name]} and {repo_name}"
                     )
                 namespace_names[name] = repo_name
-            resolved.append((repo_name, url, output_key, namespace, source, skills))
+                if directory_name in namespace_directory_names:
+                    raise ValueError(
+                        f"skill directory collision in {namespace}: {directory_name}"
+                    )
+                namespace_directory_names[directory_name] = name
+            assert source_directory_names == {
+                directory_name: name
+                for name, _, _, directory_name in skills
+            }
+            resolved.append(
+                (
+                    repo_name,
+                    url,
+                    output_key,
+                    namespace,
+                    source,
+                    skills,
+                    source_directory_names,
+                )
+            )
 
         shutil.rmtree(destination, ignore_errors=True)
         destination.mkdir(parents=True)
@@ -245,10 +362,18 @@ def main() -> None:
         provenance: list[dict[str, object]] = []
         outputs: dict[str, str] = {}
         index_children: dict[str, list[tuple[str, str]]] = {}
-        for repo_name, url, output_key, namespace, source, skills in resolved:
+        for (
+            repo_name,
+            url,
+            output_key,
+            namespace,
+            source,
+            skills,
+            _,
+        ) in resolved:
             namespace_destination = destination / namespace
             namespace_destination.mkdir(parents=True, exist_ok=True)
-            for name, skill_dir, description in skills:
+            for name, skill_dir, description, _ in skills:
                 child_destination = namespace_destination / name
                 shutil.copytree(skill_dir, child_destination)
                 rewrite_name(child_destination / "SKILL.md", name)
@@ -268,7 +393,7 @@ def main() -> None:
                     "url": url,
                     "sha": sha,
                     "namespace": namespace,
-                    "skills": [name for name, _, _ in skills],
+                    "skills": [name for name, _, _, _ in skills],
                 }
             )
             before = old_sources.get(repo_name, {}).get("sha", "")
@@ -277,6 +402,22 @@ def main() -> None:
             outputs[f"{output_key}_compare_url"] = (
                 f"{url}/compare/{before or 'unknown'}...{sha}"
             )
+
+        rewritten_references = 0
+        for namespace in directory_names:
+            for path in sorted((destination / namespace).rglob("*.md")):
+                rewritten_references += rewrite_references(
+                    path, root, namespace, directory_names
+                )
+        reference_count, dangling = validate_references(destination)
+        if dangling:
+            details = "; ".join(
+                f"{path}: {link} -> {target}" for path, link, target in dangling
+            )
+            raise ValueError(f"dangling vendored skill references: {details}")
+        outputs["rewritten_references"] = str(rewritten_references)
+        outputs["vendored_skill_references"] = str(reference_count)
+        outputs["dangling_references"] = "0"
 
         for namespace, children in index_children.items():
             render_index(root, namespace, children)

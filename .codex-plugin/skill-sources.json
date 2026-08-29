@@ -3,7 +3,7 @@
     {
       "repo": "skills",
       "url": "https://github.com/planetscale/skills",
-      "sha": "845bb821aa7ade05f3336189392549e7080fa8ce",
+      "sha": "0c90c103b1c9ad6011317e5415181c994deed15c",
       "namespace": "planetscale",
       "skills": [
         "safe-orchestrator",

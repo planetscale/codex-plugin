@@ -15,11 +15,11 @@ Default to read-only.
 
 You may inspect configuration, branches, query telemetry, recommendations, webhooks, roles, backups, traffic budgets, and repository code. You must not mutate PlanetScale, the database, the repository, the network posture, credentials, schema, production traffic controls, or automation endpoints without explicit approval of a named change set.
 
-Class C/D/E mutations require approval per `../11-change-gates-and-approval-contract/SKILL.md`. When in doubt, stop and add to the proposed change set instead of executing.
+Class C/D/E mutations require approval per `../change-gates-and-approval-contract/SKILL.md`. When in doubt, stop and add to the proposed change set instead of executing.
 
-One exception exists: if the operator explicitly acknowledges the risk and names a scope per `../13-autonomous-execution-mode/SKILL.md`, execution proceeds autonomously under that skill's status and halt discipline instead of stopping for per-change approval. The assessment phases below are identical either way.
+One exception exists: if the operator explicitly acknowledges the risk and names a scope per `../autonomous-execution-mode/SKILL.md`, execution proceeds autonomously under that skill's status and halt discipline instead of stopping for per-change approval. The assessment phases below are identical either way.
 
-Sub-skills are sibling folders next to this skill (for example `../01-readonly-inventory/SKILL.md`). Some installers rename skill folders to their frontmatter `name` (for example `planetscale-readonly-inventory` instead of `01-readonly-inventory`); if a referenced numbered path does not exist, locate the sibling skill whose frontmatter `name` matches and use it instead.
+Sub-skills are sibling folders next to this skill, referenced by relative path; if a referenced path does not exist, locate the sibling skill whose frontmatter `name` matches and use it instead.
 
 Ground all CLI and API usage in the official documentation rather than guessing: the docs index is at https://planetscale.com/docs/llms.txt (append `.md` to any docs URL for the markdown version) and the API reference is https://planetscale.com/docs/openapi.yaml. When a command or endpoint fails, check the docs for the correct form before recording an evidence gap. Tooling and access failures belong in the internal run log, never in the customer report.
 
@@ -79,13 +79,13 @@ For each phase: **read the skill file**, follow its instructions, capture its re
 
 ### Phase 0 — Safety contract
 
-Read: `../11-change-gates-and-approval-contract/SKILL.md`
+Read: `../change-gates-and-approval-contract/SKILL.md`
 
 Internalize operation classes A–E. All later phases operate under Class A unless the operator explicitly approves a named change.
 
 ### Phase 1 — Read-only inventory
 
-Read and execute: `../01-readonly-inventory/SKILL.md`
+Read and execute: `../readonly-inventory/SKILL.md`
 
 Deliverables to carry forward:
 
@@ -103,14 +103,14 @@ Run exactly one:
 
 | Engine | Skill file |
 |--------|------------|
-| Vitess | `../02-vitess-safety-review/SKILL.md` |
-| Postgres | `../03-postgres-safety-review/SKILL.md` |
+| Vitess | `../vitess-safety-review/SKILL.md` |
+| Postgres | `../postgres-safety-review/SKILL.md` |
 
 Deliverables: engine-specific safety gaps, workflow gaps, and proposed changes requiring approval.
 
 ### Phase 3 — Query Insights and tags
 
-Read and execute: `../04-query-insights-and-tags/SKILL.md`
+Read and execute: `../query-insights-and-tags/SKILL.md`
 
 Deliverables: query risk table, tag coverage table, bad/high-cardinality tags, recommended tag schema, candidate Traffic Control slices, candidate schema and code changes.
 
@@ -118,7 +118,7 @@ Deliverables: query risk table, tag coverage table, bad/high-cardinality tags, r
 
 **Skip this phase for Vitess.** Mark checklist item complete with note "N/A — Vitess".
 
-For Postgres, read and execute: `../05-traffic-control-recommendations/SKILL.md`
+For Postgres, read and execute: `../traffic-control-recommendations/SKILL.md`
 
 Deliverables: proposed budgets (name, mode, traffic slice, rule type, limits rationale, test/rollback plan).
 
@@ -126,19 +126,19 @@ If query tags are weak, note "tagging first" per that skill and defer enforce-mo
 
 ### Phase 5 — Webhook automation
 
-Read and execute: `../06-webhook-automation-recommendations/SKILL.md`
+Read and execute: `../webhook-automation-recommendations/SKILL.md`
 
 Deliverables: webhook inventory, missing subscriptions, destination quality review, automation opportunities, unsafe automation risks.
 
 ### Phase 6 — Schema recommendations agent loop
 
-Read and execute: `../07-schema-recommendations-agent-loop/SKILL.md`
+Read and execute: `../schema-recommendations-agent-loop/SKILL.md`
 
 Deliverables: per-recommendation triage (type, severity, evidence, safe implementation path, validation/rollback plan).
 
 ### Phase 7 — Codebase SQLCommenter instrumentation
 
-Read and execute: `../08-codebase-sqlcommenter-instrumentation/SKILL.md`
+Read and execute: `../codebase-sqlcommenter-instrumentation/SKILL.md`
 
 Skip only if no repository is available. Note "no repository reviewed" in the final report.
 
@@ -146,13 +146,13 @@ Deliverables: detected stack, current tagging state, recommended package/path, p
 
 ### Phase 8 — MCP agent operating model
 
-Read and execute: `../09-mcp-agent-operating-model/SKILL.md`
+Read and execute: `../mcp-agent-operating-model/SKILL.md`
 
 Deliverables: recommended MCP server choice, AGENTS.md additions, allowed/disallowed autonomous work, proposed agent loops.
 
 ### Phase 9 — Best-practices matrix coverage check
 
-Read and execute: `../12-best-practices-matrix/SKILL.md`
+Read and execute: `../best-practices-matrix/SKILL.md`
 
 Cross-check every matrix item against Phases 1–8 findings. For each item record:
 
@@ -166,7 +166,7 @@ Fill gaps: if a matrix item was not covered by earlier phases, gather missing ev
 
 ### Phase 10 — Unified customer report
 
-Read and execute: `../10-customer-report-template/SKILL.md`
+Read and execute: `../customer-report-template/SKILL.md`
 
 Synthesize **all** phase deliverables into one report. Do not dump raw phase outputs — merge, deduplicate, and rank by impact.
 
@@ -194,7 +194,7 @@ Order recommendations by:
 
 ### Phase 11 — Stop gate
 
-Re-read: `../11-change-gates-and-approval-contract/SKILL.md`
+Re-read: `../change-gates-and-approval-contract/SKILL.md`
 
 Verify:
 
@@ -202,11 +202,11 @@ Verify:
 - Every proposed mutation has an ID, target, interface, effect, risk, rollback, and test plan
 - Report ends with the required final sentence
 
-**Stop.** Do not apply changes — unless a valid autonomous-mode acknowledgment (per `../13-autonomous-execution-mode/SKILL.md`) accompanied the request, in which case present the report and the execution plan, then continue directly into execution under that skill.
+**Stop.** Do not apply changes — unless a valid autonomous-mode acknowledgment (per `../autonomous-execution-mode/SKILL.md`) accompanied the request, in which case present the report and the execution plan, then continue directly into execution under that skill.
 
 ## Required final report structure
 
-Use the template in `../10-customer-report-template/SKILL.md`. Minimum sections:
+Use the template in `../customer-report-template/SKILL.md`. Minimum sections:
 
 1. **Scope** — org, database, branches, engine, repository, interfaces, time window; changes applied: none
 2. **Executive summary** — 3–7 bullets on highest-risk gaps and highest-value improvements
@@ -234,13 +234,13 @@ Two paths into execution:
 
 **Per-change approval.** The operator approves specific change IDs:
 
-1. Re-read `../11-change-gates-and-approval-contract/SKILL.md`
+1. Re-read `../change-gates-and-approval-contract/SKILL.md`
 2. Execute only the named IDs
 3. Produce the post-execution report defined in that skill
 
 **Autonomous mode.** The operator explicitly acknowledges the risk with a named scope ("I accept the risk — apply all report recommendations to storefront-demo, production included"):
 
-1. Read `../13-autonomous-execution-mode/SKILL.md` and validate the acknowledgment against its activation contract
+1. Read `../autonomous-execution-mode/SKILL.md` and validate the acknowledgment against its activation contract
 2. Present the dependency-ordered execution plan, then execute end to end with continuous status, per-step verification, and the halt rules from that skill
 3. Produce the run summary and run log
 

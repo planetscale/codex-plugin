@@ -96,7 +96,7 @@ Verified interface notes (recheck against the docs when a command fails):
 
 Record access failures (403s, missing token scopes, timeouts) in the
 internal run log for the operator. They are not findings and do not enter
-the customer report (see `../10-customer-report-template/SKILL.md`).
+the customer report (see `../customer-report-template/SKILL.md`).
 
 ## Inventory checklist
 

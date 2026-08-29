@@ -24,7 +24,7 @@ Two different documents both named `AGENTS.md` serve different purposes:
 1. **CLI agent guide** — shipped with `pscale` (`AGENTS.md` in the
    [planetscale/cli](https://github.com/planetscale/cli) repo, or
    `pscale agent-guide --format json`). Covers auth, `--format json`, flag
-   placement, and `pscale sql`. Load skill `14-pscale-cli-automation` for the
+   placement, and `pscale sql`. Load skill `pscale-cli-automation` for the
    same conventions inside this skills pack.
 
 2. **Project agent guide** — your application repository's `AGENTS.md` (or
@@ -114,7 +114,7 @@ Not allowed by default (the review-gate actions and non-reviewable mutations):
 
 The loops above run interactively. They can also run on a schedule with no
 human in the loop, in two tiers. Tier 2 requires a standing authorization
-per `../13-autonomous-execution-mode/SKILL.md`; Tier 1 requires none.
+per `../autonomous-execution-mode/SKILL.md`; Tier 1 requires none.
 
 Every scheduled loop, both tiers: re-read authorization at run start,
 stream status to a configured delivery channel, persist a run log, and

@@ -87,7 +87,7 @@ contradiction or inconsistency.
 Recommend:
 
 - Treat raw query collection as a capability, per
-  `../04-query-insights-and-tags/SKILL.md`: when pattern-level data cannot
+  `../query-insights-and-tags/SKILL.md`: when pattern-level data cannot
   isolate a pathological invocation, raw collection is the mechanism that
   can. Where the customer's data-handling requirements constrain it,
   scoped enablement (incident windows, defined retention) and leaving
