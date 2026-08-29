@@ -117,7 +117,6 @@ def main() -> None:
             if not source.is_dir():
                 raise ValueError(f"source does not exist: {source}")
 
-            sha = git("-C", str(source), "rev-parse", "HEAD")
             skills = discover_skills(source, repo_name)
             for name, _ in skills:
                 if name in all_names:
@@ -165,12 +164,6 @@ def main() -> None:
             json.dumps({"sources": provenance}, indent=2) + "\n",
             encoding="utf-8",
         )
-        outputs["changed"] = str(
-            any(
-                old_sources.get(item["repo"], {}).get("sha", "") != item["sha"]
-                for item in provenance
-            )
-        ).lower()
         write_outputs(outputs)
 
 
