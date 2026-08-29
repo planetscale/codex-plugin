@@ -30,6 +30,7 @@ jobs:
             LICENSE \
             .mcp.json \
             .agents/plugins/marketplace.json \
+            skill-index/ \
             assets/ \
             skills/ \
             third_party/

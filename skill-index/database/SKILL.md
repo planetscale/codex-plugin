@@ -1,0 +1,28 @@
+---
+name: database
+description: Index of PlanetScale engine skills for MySQL, Postgres, Vitess, and Neki. Use to pick the right engine skill before planning schema changes, indexes, query tuning, migrations, sharding, or connection troubleshooting against a PlanetScale database.
+---
+
+# PlanetScale database skills
+
+Pick the one engine skill that matches the database in front of you and follow it. Read only that skill; the engines disagree on enough details that mixing their guidance produces wrong advice.
+
+## Pick an engine
+
+| Database | Skill |
+| --- | --- |
+| MySQL-compatible, unsharded | `mysql` |
+| PlanetScale Postgres | `postgres` |
+| Vitess (sharded MySQL, keyspaces, VSchema) | `vitess` |
+| Neki (sharded Postgres) | `neki` |
+
+If you do not know which engine backs the database, determine it with the PlanetScale MCP server before choosing — do not infer it from the connection string, ORM, or repository conventions.
+
+## Skills
+
+<!-- BEGIN GENERATED INDEX -->
+<!-- END GENERATED INDEX -->
+
+## Related
+
+Assessment, safety-review, and change-approval workflows live in the `planetscale` skill index.

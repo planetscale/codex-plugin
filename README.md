@@ -33,10 +33,12 @@ This plugin vendors skills from two upstream repositories:
 
 | Upstream | Vendored path | What it provides |
 | --- | --- | --- |
-| [`planetscale/skills`](https://github.com/planetscale/skills) | `skills/` | PlanetScale operating/assessment skills (safe orchestrator, inventory, Insights, Traffic Control, schema recommendations, and more) |
-| [`planetscale/database-skills`](https://github.com/planetscale/database-skills) | `skills/` | Engine skills for MySQL, Postgres, Vitess, and Neki |
+| [`planetscale/skills`](https://github.com/planetscale/skills) | `skills/planetscale/` | PlanetScale operating/assessment skills |
+| [`planetscale/database-skills`](https://github.com/planetscale/database-skills) | `skills/database/` | Engine skills for MySQL, Postgres, Vitess, and Neki |
 
-Both track `main`. The sync script copies each upstream skill directory into `skills/`, using the frontmatter `name` as the directory name. It skips upstream directories without a `SKILL.md` and records source commit SHAs in `.codex-plugin/skill-sources.json`.
+Both track `main`. The sync script copies each upstream skill directory into a namespace under `skills/`, using the frontmatter `name` as the directory name after stripping the `planetscale-` prefix from operating skills. It skips upstream directories without a `SKILL.md` and records source commit SHAs, namespaces, and vendored names in `.codex-plugin/skill-sources.json`.
+
+Each namespace has an index skill at `skills/database/SKILL.md` or `skills/planetscale/SKILL.md`. The index tables link to every child skill and are generated from the child frontmatter descriptions. Their source prose and generated-region markers live in `skill-index/`; edit those templates rather than the rendered indexes.
 
 ### Local sync and testing
 

@@ -26,11 +26,10 @@ jobs:
           import pathlib
 
           root = pathlib.Path("skills")
-          skill_dirs = sorted(path for path in root.iterdir() if path.is_dir())
-          assert skill_dirs, "no skill directories found"
-          for skill_dir in skill_dirs:
-              skill_md = skill_dir / "SKILL.md"
-              assert skill_md.is_file(), f"missing {skill_md}"
+          namespaces = sorted(path for path in root.iterdir() if path.is_dir())
+          assert len(namespaces) == 2, namespaces
+
+          def frontmatter_name(skill_md):
               lines = skill_md.read_text(encoding="utf-8").splitlines()
               assert lines and lines[0].strip() == "---", f"missing frontmatter in {skill_md}"
               end = lines.index("---", 1)
@@ -39,11 +38,31 @@ jobs:
                   for line in lines[1:end]
                   if line.startswith("name:")
               ]
-              assert names == [skill_dir.name], f"name mismatch in {skill_md}"
+              assert len(names) == 1, f"missing or duplicate name in {skill_md}"
+              return names[0]
 
+          child_count = 0
+          for namespace_dir in namespaces:
+              index = namespace_dir / "SKILL.md"
+              assert index.is_file(), f"missing {index}"
+              assert frontmatter_name(index) == namespace_dir.name
+              text = index.read_text(encoding="utf-8")
+              begin = "<!-- BEGIN GENERATED INDEX -->"
+              end = "<!-- END GENERATED INDEX -->"
+              start = text.index(begin) + len(begin)
+              finish = text.index(end, start)
+              assert text[start:finish].strip(), f"empty generated index in {index}"
+
+              for skill_dir in sorted(path for path in namespace_dir.iterdir() if path.is_dir()):
+                  child_count += 1
+                  skill_md = skill_dir / "SKILL.md"
+                  assert skill_md.is_file(), f"missing {skill_md}"
+                  assert frontmatter_name(skill_md) == skill_dir.name
+
+          assert child_count == 19, child_count
           for name in ("mysql", "postgres", "vitess", "neki"):
-              assert (root / name / "SKILL.md").is_file(), f"missing database skill {name}"
-          assert not (root / "script").exists(), "helper script directory was vendored"
+              assert (root / "database" / name / "SKILL.md").is_file(), f"missing database skill {name}"
+          assert not any(path.name == "script" for path in root.rglob("*")), "helper script directory was vendored"
           PY
 
       - name: Detect vendored changes
