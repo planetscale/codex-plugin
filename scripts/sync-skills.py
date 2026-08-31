@@ -36,7 +36,15 @@ INDEX_MARKERS = ("<!-- BEGIN GENERATED INDEX -->", "<!-- END GENERATED INDEX -->
 REFERENCE = re.compile(
     r"(?P<prefix>(?:\.\./)+)"
     r"(?P<target>[a-z0-9]+(?:-[a-z0-9]+)*)"
-    r"(?P<suffix>(?:/[A-Za-z0-9._-]+)*/SKILL\.md)"
+    r"(?P<suffix>(?:/[A-Za-z0-9._-]+)+)"
+)
+MARKDOWN_LINK = re.compile(
+    r"\]\((?P<link>(?!(?:[A-Za-z][A-Za-z0-9+.-]*:|//|#))[^)\s]+)"
+)
+UPSTREAM_URL = re.compile(
+    r"https://raw.githubusercontent.com/planetscale/"
+    r"(?P<repo>skills|database-skills)/main/"
+    r"(?P<path>[^\s)\]}>\"']+)"
 )
 
 
@@ -165,12 +173,41 @@ def rewrite_name(path: Path, name: str) -> None:
 
 def rewrite_references(
     path: Path,
-    root: Path,
+    generated_root: Path,
     namespace: str,
     directory_names: dict[str, dict[str, str]],
-) -> int:
+) -> tuple[int, int, int]:
     text = path.read_text(encoding="utf-8")
     rewritten = 0
+    rewritten_upstream_urls = 0
+    unresolved_upstream_urls = 0
+
+    def replace_upstream_url(match: re.Match[str]) -> str:
+        nonlocal rewritten_upstream_urls, unresolved_upstream_urls
+        repo = match.group("repo")
+        upstream_path = match.group("path")
+        if repo == "database-skills":
+            prefix = "skills/"
+            target_namespace = "database"
+            if not upstream_path.startswith(prefix):
+                unresolved_upstream_urls += 1
+                return match.group(0)
+            upstream_path = upstream_path[len(prefix) :]
+        else:
+            target_namespace = "planetscale"
+
+        parts = upstream_path.split("/", 1)
+        target_name = directory_names.get(target_namespace, {}).get(parts[0])
+        if target_name is None:
+            unresolved_upstream_urls += 1
+            return match.group(0)
+        relative_path = parts[1] if len(parts) == 2 else ""
+        target = generated_root / "skills" / target_name / relative_path
+        if not target.is_file():
+            unresolved_upstream_urls += 1
+            return match.group(0)
+        rewritten_upstream_urls += 1
+        return os.path.relpath(target, path.parent)
 
     def replace_path(match: re.Match[str]) -> str:
         nonlocal rewritten
@@ -191,13 +228,14 @@ def rewrite_references(
             replacement = f"{match.group('prefix')}{target_name}{suffix}"
         else:
             target_path = (
-                root / "skills" / target_name / suffix.lstrip("/")
+                generated_root / "skills" / target_name / suffix.lstrip("/")
             )
             replacement = os.path.relpath(target_path, path.parent)
         if replacement != match.group(0):
             rewritten += 1
         return replacement
 
+    text = UPSTREAM_URL.sub(replace_upstream_url, text)
     text = REFERENCE.sub(replace_path, text)
     names = directory_names.get(namespace, {})
     if names and namespace == "planetscale":
@@ -218,7 +256,9 @@ def rewrite_references(
 
     if rewritten:
         path.write_text(text, encoding="utf-8")
-    return rewritten
+    elif rewritten_upstream_urls:
+        path.write_text(text, encoding="utf-8")
+    return rewritten, rewritten_upstream_urls, unresolved_upstream_urls
 
 
 def validate_references(root: Path) -> tuple[int, list[tuple[Path, str, Path]]]:
@@ -226,13 +266,58 @@ def validate_references(root: Path) -> tuple[int, list[tuple[Path, str, Path]]]:
     dangling: list[tuple[Path, str, Path]] = []
     for path in sorted(root.rglob("*.md")):
         text = path.read_text(encoding="utf-8")
-        for match in REFERENCE.finditer(text):
-            link = match.group(0)
-            target = (path.parent / link).resolve()
+        links: dict[int, str] = {
+            match.start(): match.group(0) for match in REFERENCE.finditer(text)
+        }
+        links.update(
+            {
+                match.start("link"): match.group("link")
+                for match in MARKDOWN_LINK.finditer(text)
+            }
+        )
+        for link in links.values():
+            target_link = re.split(r"[#?]", link, maxsplit=1)[0]
+            target = (path.parent / target_link).resolve()
             reference_count += 1
             if not target.is_file():
                 dangling.append((path, link, target))
     return reference_count, dangling
+
+
+def install_staged_tree(
+    staged_skills: Path,
+    staged_third_party: Path,
+    staged_provenance: Path,
+    destination: Path,
+    third_party: Path,
+    provenance_path: Path,
+    backup_root: Path,
+) -> None:
+    replacements = (
+        (staged_skills, destination, backup_root / "skills"),
+        (staged_third_party, third_party, backup_root / "third_party"),
+        (staged_provenance, provenance_path, backup_root / "skill-sources.json"),
+    )
+    installed: list[tuple[Path, Path]] = []
+    backups: list[tuple[Path, Path]] = []
+    try:
+        for staged, target, backup in replacements:
+            if target.exists():
+                backup.parent.mkdir(parents=True, exist_ok=True)
+                os.replace(target, backup)
+                backups.append((backup, target))
+            target.parent.mkdir(parents=True, exist_ok=True)
+            os.replace(staged, target)
+            installed.append((target, staged))
+    except Exception:
+        for target, _ in reversed(installed):
+            if target.is_dir():
+                shutil.rmtree(target)
+            elif target.exists():
+                target.unlink()
+        for backup, target in reversed(backups):
+            os.replace(backup, target)
+        raise
 
 
 def first_sentence(description: str) -> str:
@@ -242,8 +327,13 @@ def first_sentence(description: str) -> str:
     return description
 
 
-def render_index(root: Path, namespace: str, children: list[tuple[str, str]]) -> None:
-    template = root / "skill-index" / namespace / "SKILL.md"
+def render_index(
+    template_root: Path,
+    output_root: Path,
+    namespace: str,
+    children: list[tuple[str, str]],
+) -> None:
+    template = template_root / "skill-index" / namespace / "SKILL.md"
     if not template.is_file():
         raise ValueError(f"missing index template: {template}")
 
@@ -272,7 +362,7 @@ def render_index(root: Path, namespace: str, children: list[tuple[str, str]]) ->
         + "\n"
         + text[end_index:]
     )
-    destination = root / "skills" / namespace / "SKILL.md"
+    destination = output_root / "skills" / namespace / "SKILL.md"
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(rendered, encoding="utf-8")
 
@@ -295,6 +385,7 @@ def main() -> None:
 
     root = Path(__file__).resolve().parents[1]
     destination = root / "skills"
+    third_party = root / "third_party"
     provenance_path = root / ".codex-plugin" / "skill-sources.json"
     old_sources = previous_sources(provenance_path)
     local_sources = {
@@ -306,7 +397,9 @@ def main() -> None:
         ),
     }
 
-    with tempfile.TemporaryDirectory(prefix="planet-scale-skills-") as temp_dir:
+    with tempfile.TemporaryDirectory(
+        prefix="planet-scale-skills-", dir=root.parent
+    ) as temp_dir:
         temp_root = Path(temp_dir)
         resolved: list[
             tuple[
@@ -376,10 +469,14 @@ def main() -> None:
                 )
             )
 
-        shutil.rmtree(destination, ignore_errors=True)
-        destination.mkdir(parents=True)
-        third_party = root / "third_party"
-        third_party.mkdir(exist_ok=True)
+        staged_root = temp_root / "staged"
+        staged_destination = staged_root / "skills"
+        staged_third_party = staged_root / "third_party"
+        staged_destination.mkdir(parents=True)
+        if third_party.is_dir():
+            shutil.copytree(third_party, staged_third_party)
+        else:
+            staged_third_party.mkdir(parents=True)
 
         provenance: list[dict[str, object]] = []
         outputs: dict[str, str] = {}
@@ -394,13 +491,13 @@ def main() -> None:
             _,
         ) in resolved:
             for name, skill_dir, description, _ in skills:
-                child_destination = destination / name
+                child_destination = staged_destination / name
                 shutil.copytree(skill_dir, child_destination)
                 rewrite_name(child_destination / "SKILL.md", name)
                 index_children.setdefault(namespace, []).append((name, description))
 
             license_source = source / "LICENSE"
-            license_destination = third_party / repo_name
+            license_destination = staged_third_party / repo_name
             shutil.rmtree(license_destination, ignore_errors=True)
             if license_source.is_file():
                 license_destination.mkdir(parents=True, exist_ok=True)
@@ -424,19 +521,30 @@ def main() -> None:
             )
 
         rewritten_references = 0
+        rewritten_upstream_urls = 0
+        unresolved_upstream_urls = 0
         skill_namespaces = {
             name: namespace
             for namespace, names in directory_names.items()
             for name in names.values()
         }
-        for path in sorted(destination.rglob("*.md")):
-            name = path.relative_to(destination).parts[0]
+        for path in sorted(staged_destination.rglob("*.md")):
+            name = path.relative_to(staged_destination).parts[0]
             namespace = skill_namespaces.get(name)
             if namespace is not None:
-                rewritten_references += rewrite_references(
-                    path, root, namespace, directory_names
+                (
+                    path_references,
+                    path_upstream_urls,
+                    path_unresolved_urls,
+                ) = rewrite_references(
+                    path, staged_root, namespace, directory_names
                 )
-        reference_count, dangling = validate_references(destination)
+                rewritten_references += path_references
+                rewritten_upstream_urls += path_upstream_urls
+                unresolved_upstream_urls += path_unresolved_urls
+        for namespace, children in index_children.items():
+            render_index(root, staged_root, namespace, children)
+        reference_count, dangling = validate_references(staged_destination)
         if dangling:
             details = "; ".join(
                 f"{path}: {link} -> {target}" for path, link, target in dangling
@@ -445,15 +553,25 @@ def main() -> None:
         outputs["rewritten_references"] = str(rewritten_references)
         outputs["vendored_skill_references"] = str(reference_count)
         outputs["dangling_references"] = "0"
+        outputs["rewritten_upstream_urls"] = str(rewritten_upstream_urls)
+        outputs["unresolved_upstream_urls"] = str(unresolved_upstream_urls)
 
-        for namespace, children in index_children.items():
-            render_index(root, namespace, children)
-
-        provenance_path.write_text(
+        staged_provenance = staged_root / ".codex-plugin" / "skill-sources.json"
+        staged_provenance.parent.mkdir(parents=True, exist_ok=True)
+        staged_provenance.write_text(
             json.dumps({"sources": provenance}, indent=2) + "\n",
             encoding="utf-8",
         )
         write_outputs(outputs)
+        install_staged_tree(
+            staged_destination,
+            staged_third_party,
+            staged_provenance,
+            destination,
+            third_party,
+            provenance_path,
+            temp_root / "backup",
+        )
 
 
 if __name__ == "__main__":

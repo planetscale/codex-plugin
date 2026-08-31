@@ -29,5 +29,5 @@ For the latest updates and to subscribe for announcements, visit the official Ne
 
 | Topic | Reference | Use for |
 | --- | --- | --- |
-| Sharding Readiness | [references/sharding-readiness.md](https://raw.githubusercontent.com/planetscale/database-skills/main/skills/neki/references/sharding-readiness.md) | Schema and query design practices that keep a Postgres database ready for future sharding |
+| Sharding Readiness | [references/sharding-readiness.md](references/sharding-readiness.md) | Schema and query design practices that keep a Postgres database ready for future sharding |
 

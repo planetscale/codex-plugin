@@ -57,8 +57,8 @@ Known limitations:
 
 | Topic | Reference | Use for |
 | --- | --- | --- |
-| VSchema | [references/vschema.md](https://raw.githubusercontent.com/planetscale/database-skills/main/skills/vitess/references/vschema.md) | VSchema design, vindexes, sequences, sharding strategies |
-| Schema Changes | [references/schema-changes.md](https://raw.githubusercontent.com/planetscale/database-skills/main/skills/vitess/references/schema-changes.md) | Online DDL, managed migrations, ddl strategies, migration lifecycle |
-| VReplication | [references/vreplication.md](https://raw.githubusercontent.com/planetscale/database-skills/main/skills/vitess/references/vreplication.md) | MoveTables, Reshard, Materialize, VDiff, VStream |
-| Architecture | [references/architecture.md](https://raw.githubusercontent.com/planetscale/database-skills/main/skills/vitess/references/architecture.md) | VTGate, VTTablet, Topology Service, VTOrc, component interactions |
-| Query Serving | [references/query-serving.md](https://raw.githubusercontent.com/planetscale/database-skills/main/skills/vitess/references/query-serving.md) | Query routing, MySQL compatibility, cross-shard performance, EXPLAIN |
+| VSchema | [references/vschema.md](references/vschema.md) | VSchema design, vindexes, sequences, sharding strategies |
+| Schema Changes | [references/schema-changes.md](references/schema-changes.md) | Online DDL, managed migrations, ddl strategies, migration lifecycle |
+| VReplication | [references/vreplication.md](references/vreplication.md) | MoveTables, Reshard, Materialize, VDiff, VStream |
+| Architecture | [references/architecture.md](references/architecture.md) | VTGate, VTTablet, Topology Service, VTOrc, component interactions |
+| Query Serving | [references/query-serving.md](references/query-serving.md) | Query routing, MySQL compatibility, cross-shard performance, EXPLAIN |
