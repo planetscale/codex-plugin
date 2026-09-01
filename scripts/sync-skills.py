@@ -386,7 +386,7 @@ def main() -> None:
     root = Path(__file__).resolve().parents[1]
     destination = root / "skills"
     third_party = root / "third_party"
-    provenance_path = root / ".codex-plugin" / "skill-sources.json"
+    provenance_path = root / "skill-sources.json"
     old_sources = previous_sources(provenance_path)
     local_sources = {
         "skills": args.skills_source.resolve() if args.skills_source else None,
@@ -556,8 +556,7 @@ def main() -> None:
         outputs["rewritten_upstream_urls"] = str(rewritten_upstream_urls)
         outputs["unresolved_upstream_urls"] = str(unresolved_upstream_urls)
 
-        staged_provenance = staged_root / ".codex-plugin" / "skill-sources.json"
-        staged_provenance.parent.mkdir(parents=True, exist_ok=True)
+        staged_provenance = staged_root / "skill-sources.json"
         staged_provenance.write_text(
             json.dumps({"sources": provenance}, indent=2) + "\n",
             encoding="utf-8",

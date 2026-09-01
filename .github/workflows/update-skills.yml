@@ -29,7 +29,7 @@ jobs:
 
           root = pathlib.Path("skills")
           provenance = json.loads(
-              pathlib.Path(".codex-plugin/skill-sources.json").read_text(encoding="utf-8")
+              pathlib.Path("skill-sources.json").read_text(encoding="utf-8")
           )
           reference = re.compile(
               r"(?P<prefix>(?:\.\./)+)"
@@ -113,7 +113,7 @@ jobs:
       - name: Detect vendored changes
         id: changes
         run: |
-          if [ -n "$(git status --porcelain -- skills third_party .codex-plugin/skill-sources.json)" ]; then
+          if [ -n "$(git status --porcelain -- skills third_party skill-sources.json)" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
@@ -142,4 +142,4 @@ jobs:
           add-paths: |
             skills
             third_party
-            .codex-plugin/skill-sources.json
+            skill-sources.json

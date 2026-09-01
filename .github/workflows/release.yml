@@ -27,6 +27,7 @@ jobs:
           tar -czvf planetscale-codex-plugin.tar.gz \
             --dereference \
             .codex-plugin/ \
+            skill-sources.json \
             LICENSE \
             .mcp.json \
             .agents/plugins/marketplace.json \
