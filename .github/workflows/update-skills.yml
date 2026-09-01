@@ -1,4 +1,4 @@
-name: Update Skills Submodules
+name: Update Vendored Skills
 
 on:
   workflow_dispatch:
@@ -15,84 +15,131 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          submodules: recursive
 
-      - name: Capture current submodule commits
-        id: before
+      - name: Sync vendored skills
+        id: sync
+        run: python3 scripts/sync-skills.py
+
+      - name: Validate skills layout
         run: |
-          echo "database_skills_sha=$(git rev-parse HEAD:database-skills)" >> "$GITHUB_OUTPUT"
-          echo "skills_sha=$(git rev-parse HEAD:skills)" >> "$GITHUB_OUTPUT"
+          python3 - <<'PY'
+          import pathlib
+          import json
+          import re
 
-      - name: Sync and update skill submodules
+          root = pathlib.Path("skills")
+          provenance = json.loads(
+              pathlib.Path("skill-sources.json").read_text(encoding="utf-8")
+          )
+          reference = re.compile(
+              r"(?P<prefix>(?:\.\./)+)"
+              r"(?P<target>[a-z0-9]+(?:-[a-z0-9]+)*)"
+              r"(?P<suffix>(?:/[A-Za-z0-9._-]+)+)"
+          )
+          markdown_link = re.compile(
+              r"\]\((?P<link>(?!(?:[A-Za-z][A-Za-z0-9+.-]*:|//|#))[^)\s]+)"
+          )
+
+          def frontmatter_name(skill_md):
+              lines = skill_md.read_text(encoding="utf-8").splitlines()
+              assert lines and lines[0].strip() == "---", f"missing frontmatter in {skill_md}"
+              end = lines.index("---", 1)
+              names = [
+                  line.partition(":")[2].strip().strip("\"'")
+                  for line in lines[1:end]
+                  if line.startswith("name:")
+              ]
+              assert len(names) == 1, f"missing or duplicate name in {skill_md}"
+              return names[0]
+
+          namespaces = {"database", "planetscale"}
+          recorded_names = set()
+          for source in provenance["sources"]:
+              assert source["namespace"] in namespaces, source
+              names = source["skills"]
+              assert len(names) == len(set(names)), source
+              recorded_names.update(names)
+          expected_dirs = namespaces | recorded_names
+          skill_dirs = sorted(path for path in root.iterdir() if path.is_dir())
+          assert {path.name for path in skill_dirs} == expected_dirs, (
+              {path.name for path in skill_dirs},
+              expected_dirs,
+          )
+
+          for skill_dir in skill_dirs:
+              skill_md = skill_dir / "SKILL.md"
+              assert skill_md.is_file(), f"missing {skill_md}"
+              assert frontmatter_name(skill_md) == skill_dir.name
+
+          for namespace in namespaces:
+              index = root / namespace / "SKILL.md"
+              text = index.read_text(encoding="utf-8")
+              begin = "<!-- BEGIN GENERATED INDEX -->"
+              end = "<!-- END GENERATED INDEX -->"
+              start = text.index(begin) + len(begin)
+              finish = text.index(end, start)
+              assert text[start:finish].strip(), f"empty generated index in {index}"
+
+          assert not any(path.name == "script" for path in root.rglob("*")), "helper script directory was vendored"
+
+          reference_count = 0
+          root_resolved = root.resolve()
+          for markdown in root.rglob("*.md"):
+              text = markdown.read_text(encoding="utf-8")
+              links = {
+                  match.start(): match.group(0)
+                  for match in reference.finditer(text)
+              }
+              links.update(
+                  {
+                      match.start("link"): match.group("link")
+                      for match in markdown_link.finditer(text)
+                  }
+              )
+              for link in links.values():
+                  reference_count += 1
+                  target_link = re.split(r"[#?]", link, maxsplit=1)[0]
+                  target = (markdown.parent / target_link).resolve()
+                  assert target.is_relative_to(root_resolved), (
+                      f"reference escapes skills root: {markdown}: {link}"
+                  )
+                  assert target.is_file(), (
+                      f"dangling skill reference: {markdown}: "
+                      f"{link} -> {target}"
+                  )
+          print(f"vendored skill references passed: {reference_count}")
+          PY
+
+      - name: Detect vendored changes
+        id: changes
         run: |
-          git submodule sync --recursive
-          git submodule update --init --remote database-skills skills
-
-      - name: Validate expected skills layout
-        run: |
-          test -d database-skills/skills
-          for skill in mysql neki postgres vitess; do
-            test -f "database-skills/skills/$skill/SKILL.md"
-          done
-
-          skill_count=0
-          for skill in skills/[0-9]*; do
-            test -f "$skill/SKILL.md"
-            skill_count=$((skill_count + 1))
-          done
-          test "$skill_count" -ge 1
-
-      - name: Capture updated submodule commits
-        id: after
-        run: |
-          echo "database_skills_sha=$(git -C database-skills rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          echo "skills_sha=$(git -C skills rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-
-      - name: Compute change metadata
-        id: meta
-        run: |
-          DB_BEFORE="${{ steps.before.outputs.database_skills_sha }}"
-          DB_AFTER="${{ steps.after.outputs.database_skills_sha }}"
-          SK_BEFORE="${{ steps.before.outputs.skills_sha }}"
-          SK_AFTER="${{ steps.after.outputs.skills_sha }}"
-
-          CHANGED="false"
-          if [ "$DB_BEFORE" != "$DB_AFTER" ] || [ "$SK_BEFORE" != "$SK_AFTER" ]; then
-            CHANGED="true"
+          if [ -n "$(git status --porcelain -- skills third_party skill-sources.json)" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
 
-          {
-            echo "changed=$CHANGED"
-            echo "database_skills_before_sha=$DB_BEFORE"
-            echo "database_skills_after_sha=$DB_AFTER"
-            echo "database_skills_compare_url=https://github.com/planetscale/database-skills/compare/$DB_BEFORE...$DB_AFTER"
-            echo "skills_before_sha=$SK_BEFORE"
-            echo "skills_after_sha=$SK_AFTER"
-            echo "skills_compare_url=https://github.com/planetscale/skills/compare/$SK_BEFORE...$SK_AFTER"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Open pull request with submodule updates
-        if: steps.meta.outputs.changed == 'true'
+      - name: Open pull request with vendored skill updates
+        if: steps.changes.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676 # v7
         with:
-          branch: chore/update-skills-submodules
+          branch: chore/update-vendored-skills
           delete-branch: true
-          title: "chore: update skills submodules"
-          commit-message: "chore: update skills submodules"
+          title: "chore: update vendored skills"
+          commit-message: "chore: update vendored skills"
           body: |
-            This automated PR updates the skill submodules to the latest `main` commits.
+            This automated PR updates the vendored skills to the latest `main` commits.
 
             ### database-skills
-            - Previous commit: `${{ steps.meta.outputs.database_skills_before_sha }}`
-            - Updated commit: `${{ steps.meta.outputs.database_skills_after_sha }}`
-            - Upstream compare: ${{ steps.meta.outputs.database_skills_compare_url }}
+            - Previous commit: `${{ steps.sync.outputs.database_skills_before_sha }}`
+            - Updated commit: `${{ steps.sync.outputs.database_skills_after_sha }}`
+            - Upstream compare: ${{ steps.sync.outputs.database_skills_compare_url }}
 
             ### skills
-            - Previous commit: `${{ steps.meta.outputs.skills_before_sha }}`
-            - Updated commit: `${{ steps.meta.outputs.skills_after_sha }}`
-            - Upstream compare: ${{ steps.meta.outputs.skills_compare_url }}
+            - Previous commit: `${{ steps.sync.outputs.skills_before_sha }}`
+            - Updated commit: `${{ steps.sync.outputs.skills_after_sha }}`
+            - Upstream compare: ${{ steps.sync.outputs.skills_compare_url }}
           add-paths: |
-            .gitmodules
-            database-skills
             skills
+            third_party
+            skill-sources.json
