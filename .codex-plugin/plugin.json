@@ -33,9 +33,9 @@
     "websiteURL": "https://planetscale.com",
     "privacyPolicyURL": "https://planetscale.com/legal/privacy",
     "termsOfServiceURL": "https://planetscale.com/legal/agreement",
-    "logo": "./assets/logo.png",
-    "logoDark": "./assets/logo-dark.png",
-    "composerIcon": "./assets/composer-icon.png",
+    "logo": "./assets/planetscale-mark-black.svg",
+    "logoDark": "./assets/planetscale-mark-white.svg",
+    "composerIcon": "./assets/planetscale-mark-black.svg",
     "defaultPrompt": [
       "Run a PlanetScale best-practices assessment for my database.",
       "List my PlanetScale organizations and databases, then inspect a branch schema.",
