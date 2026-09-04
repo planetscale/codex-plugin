@@ -1,0 +1,39 @@
+{
+  "sources": [
+    {
+      "repo": "skills",
+      "url": "https://github.com/planetscale/skills",
+      "sha": "5467683425a616c2d8100cc6ba56952609ecafd0",
+      "namespace": "planetscale",
+      "skills": [
+        "safe-orchestrator",
+        "readonly-inventory",
+        "vitess-safety-review",
+        "postgres-safety-review",
+        "query-insights-and-tags",
+        "traffic-control-recommendations",
+        "webhook-automation-recommendations",
+        "schema-recommendations-agent-loop",
+        "codebase-sqlcommenter-instrumentation",
+        "mcp-agent-operating-model",
+        "customer-report-template",
+        "change-gates-and-approval-contract",
+        "best-practices-matrix",
+        "autonomous-execution-mode",
+        "pscale-cli-automation"
+      ]
+    },
+    {
+      "repo": "database-skills",
+      "url": "https://github.com/planetscale/database-skills",
+      "sha": "73b20b7eb64716d8c7100c054f0677c0c6e77e30",
+      "namespace": "database",
+      "skills": [
+        "database-mysql",
+        "database-neki",
+        "database-postgres",
+        "database-vitess"
+      ]
+    }
+  ]
+}
